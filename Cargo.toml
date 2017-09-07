@@ -1,0 +1,8 @@
+[package]
+name = "i2c-16x2"
+version = "0.1.0"
+authors = ["Romain Porte <microjoe@microjoe.org>"]
+
+[dependencies]
+i2cdev = "0.3.1"
+enum_primitive = "0.1.1"
