@@ -213,6 +213,24 @@ impl Screen {
         }
     }
 
+    pub fn display(&mut self, s: &str, line: u8, col: u8) -> ScreenResult {
+        let pos = match line {
+            1 => col,
+            2 => 0x40 + col,
+            3 => 0x14 + col,
+            4 => 0x54 + col,
+            _ => col,
+        };
+
+        try!(self.write(0x80 + pos, WriteMode::Normal));
+
+        for c in s.chars() {
+            try!(self.write_char(c as u8));
+        }
+
+        Ok(())
+    }
+
     // Lower-level methods that write commands to device, ordered from higher
     // to lower level of abstraction
 
