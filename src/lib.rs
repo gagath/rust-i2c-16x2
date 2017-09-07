@@ -79,7 +79,7 @@ pub enum WriteMode {
     Enable = 0x04,
     ReadWrite = 0x02,
     RegisterSelect = 0x01,
-    None = 0x00,
+    Normal = 0x00,
 }
 
 // Configuration
@@ -138,10 +138,10 @@ impl Screen {
     }
 
     pub fn init(&mut self) -> ScreenResult {
-        try!(self.write(0x03));
-        try!(self.write(0x03));
-        try!(self.write(0x03));
-        try!(self.write(0x02));
+        try!(self.write(0x03, WriteMode::Normal));
+        try!(self.write(0x03, WriteMode::Normal));
+        try!(self.write(0x03, WriteMode::Normal));
+        try!(self.write(0x02, WriteMode::Normal));
 
         try!(self.install_function_set());
 
@@ -203,18 +203,22 @@ impl Screen {
     // to lower level of abstraction
 
     pub fn command(&mut self, command: Command, data: u8) -> ScreenResult {
-        self.write((command as u8) | data)
+        self.write((command as u8) | data, WriteMode::Normal)
     }
 
-    pub fn write(&mut self, command: u8) -> ScreenResult {
+    pub fn write_char(&mut self, ch: u8) -> ScreenResult {
+        self.write(ch, WriteMode::RegisterSelect)
+    }
+
+    pub fn write(&mut self, command: u8, mode: WriteMode) -> ScreenResult {
         match self.config.bit_mode {
             BitMode::B4 => {
-                try!(self.write_screen(command & 0xF0));
-                try!(self.write_screen((command << 4) & 0xF0));
+                try!(self.write_screen((mode as u8) | (command & 0xF0)));
+                try!(self.write_screen((mode as u8) | ((command << 4) & 0xF0)));
                 Ok(())
             }
             BitMode::B8 => {
-                try!(self.write_screen(command));
+                try!(self.write_screen((mode as u8) | command)); // Not sure here for mode
                 Ok(())
             }
         }
