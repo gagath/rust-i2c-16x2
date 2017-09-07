@@ -33,38 +33,54 @@ pub enum EntryShift {
     Decrement = 0x00,
 }
 
-//# flags for display on/off control
-//pub enum
+// Flags for display on/off control
+
+#[derive(Copy, Clone)]
 pub enum DisplayState {
+    Off = 0x00,
     On = 0x04,
-    Off = 0x00,
 }
 
+#[derive(Copy, Clone)]
 pub enum CursorState {
+    Off = 0x00,
     On = 0x02,
-    Off = 0x00,
 }
 
+#[derive(Copy, Clone)]
 pub enum BlinkState {
-    On = 0x01,
     Off = 0x00,
+    On = 0x01,
 }
-//
-//# flags for display/cursor shift
-//LCD_DISPLAYMOVE = 0x08
-//LCD_CURSORMOVE = 0x00
-//LCD_MOVERIGHT = 0x04
-//LCD_MOVELEFT = 0x00
-//
-//# flags for backlight control
-const LCD_BACKLIGHT_ON: u8 = 0x08;
-const LCD_BACKLIGHT_OFF: u8 = 0x00;
-//LCD_NOBACKLIGHT = 0x00
-//
-//En = 0b00000100 # Enable bit
-//Rw = 0b00000010 # Read/Write bit
-//Rs = 0b00000001 # Register select bit
 
+// Flags for display/cursor shift
+
+#[derive(Copy, Clone)]
+pub enum MoveType {
+    Cursor = 0x00,
+    Display = 0x08,
+}
+
+#[derive(Copy, Clone)]
+pub enum MoveDirection {
+    Left = 0x00,
+    Right = 0x04,
+}
+
+#[derive(Copy, Clone)]
+pub enum Backlight {
+    Off = 0x00,
+    On = 0x08,
+}
+
+// Specific flags
+#[derive(Copy, Clone)]
+pub enum WriteMode {
+    Enable = 0x04,
+    ReadWrite = 0x02,
+    RegisterSelect = 0x01,
+    None = 0x00,
+}
 
 // Configuration
 
@@ -177,9 +193,9 @@ impl Screen {
 
     pub fn set_backlight(&mut self, backlight: bool) -> ScreenResult {
         if backlight {
-            self.write_cmd(LCD_BACKLIGHT_ON)
+            self.write_cmd(Backlight::On as u8)
         } else {
-            self.write_cmd(LCD_BACKLIGHT_OFF)
+            self.write_cmd(Backlight::Off as u8)
         }
     }
 
@@ -205,7 +221,7 @@ impl Screen {
     }
 
     pub fn write_screen(&mut self, command: u8) -> ScreenResult {
-        try!(self.write_cmd(command | LCD_BACKLIGHT_ON));
+        try!(self.write_cmd(command | (Backlight::On as u8)));
         Ok(())
     }
 
