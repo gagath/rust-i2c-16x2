@@ -29,18 +29,26 @@ pub enum EntryMode {
 
 #[derive(Copy, Clone)]
 pub enum EntryShift {
-    ENTRYSHIFTINCREMENT = 0x01,
-    ENTRYSHIFTDECREMENT = 0x00,
+    Increment = 0x01,
+    Decrement = 0x00,
 }
 
 //# flags for display on/off control
 //pub enum
-const LCD_DISPLAY_ON: u8 = 0x04;
-//LCD_DISPLAYOFF = 0x00
-//LCD_CURSORON = 0x02
-//LCD_CURSOROFF = 0x00
-//LCD_BLINKON = 0x01
-//LCD_BLINKOFF = 0x00
+pub enum DisplayState {
+    On = 0x04,
+    Off = 0x00,
+}
+
+pub enum CursorState {
+    On = 0x02,
+    Off = 0x00,
+}
+
+pub enum BlinkState {
+    On = 0x01,
+    Off = 0x00,
+}
 //
 //# flags for display/cursor shift
 //LCD_DISPLAYMOVE = 0x08
@@ -121,7 +129,7 @@ impl Screen {
 
         try!(self.install_function_set());
 
-        try!(self.command(Command::DisplayControl, LCD_DISPLAY_ON));
+        try!(self.set_display(DisplayState::On, CursorState::Off, BlinkState::Off));
         try!(self.clear());
         try!(self.set_entry_mode(EntryMode::Left)); // Allow users to change this?
 
@@ -149,6 +157,20 @@ impl Screen {
 
     pub fn set_entry_mode(&mut self, entry_mode: EntryMode) -> ScreenResult {
         self.command(Command::EntryModeSet, entry_mode as u8)
+    }
+
+    pub fn set_display(&mut self,
+                       display: DisplayState,
+                       cursor: CursorState,
+                       blink: BlinkState)
+                       -> ScreenResult {
+        let mut flags = 0;
+
+        flags = flags | (display as u8);
+        flags = flags | (cursor as u8);
+        flags = flags | (blink as u8);
+
+        self.command(Command::DisplayControl, flags)
     }
 
     // Other methods that are not commands
@@ -204,7 +226,7 @@ mod tests {
     #[test]
     fn test_init() {
         let config = ScreenConfig::default();
-        let mut screen = Screen::new(config, "/dev/i2c-1", 0xf3).unwrap();
+        let mut screen = Screen::new(config, "/dev/i2c-1", 0xf3).expect("Could not init device");
 
         screen.init().unwrap();
     }
