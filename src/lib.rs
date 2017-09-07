@@ -20,11 +20,11 @@ pub enum Command {
     SetDDRamAddr = 0x80,
 }
 
-//# flags for display entry mode
+// Display entry mode
 #[derive(Copy, Clone)]
 pub enum EntryMode {
-    ENTRYRIGHT = 0x00,
-    ENTRYLEFT = 0x02,
+    Right = 0x00,
+    Left = 0x02,
 }
 
 #[derive(Copy, Clone)]
@@ -123,9 +123,15 @@ impl Screen {
 
         try!(self.command(Command::DisplayControl, LCD_DISPLAY_ON));
         try!(self.clear());
+        try!(self.set_entry_mode(EntryMode::Left)); // Allow users to change this?
+
+        // Wait a little for the screen to set up
+        thread::sleep(Duration::from_millis(200));
 
         Ok(())
     }
+
+    // High-order commands mapped to methods
 
     pub fn install_function_set(&mut self) -> ScreenResult {
         let mut flags = 0;
@@ -140,6 +146,23 @@ impl Screen {
     pub fn clear(&mut self) -> ScreenResult {
         self.command(Command::ClearDisplay, 0)
     }
+
+    pub fn set_entry_mode(&mut self, entry_mode: EntryMode) -> ScreenResult {
+        self.command(Command::EntryModeSet, entry_mode as u8)
+    }
+
+    // Other methods that are not commands
+
+    pub fn set_backlight(&mut self, backlight: bool) -> ScreenResult {
+        if backlight {
+            self.write_cmd(LCD_BACKLIGHT_ON)
+        } else {
+            self.write_cmd(LCD_BACKLIGHT_OFF)
+        }
+    }
+
+    // Lower-level methods that write commands to device, ordered from higher
+    // to lower level of abstraction
 
     pub fn command(&mut self, command: Command, data: u8) -> ScreenResult {
         self.write((command as u8) | data)
@@ -165,6 +188,11 @@ impl Screen {
     }
 
     pub fn write_cmd(&mut self, command: u8) -> ScreenResult {
+        try!(self.dev.smbus_write_byte(command));
+
+        // Wait 10 microseconds
+        thread::sleep(Duration::new(0, 10_000));
+
         Ok(())
     }
 }
@@ -176,7 +204,7 @@ mod tests {
     #[test]
     fn test_init() {
         let config = ScreenConfig::default();
-        let mut screen = Screen::new(config, "/dev/null", 0xf3).unwrap();
+        let mut screen = Screen::new(config, "/dev/i2c-1", 0xf3).unwrap();
 
         screen.init().unwrap();
     }
