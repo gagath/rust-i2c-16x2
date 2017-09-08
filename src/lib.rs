@@ -242,11 +242,17 @@ impl Screen {
         self.write(ch, WriteMode::RegisterSelect)
     }
 
+    pub fn write_four_bytes(&mut self, data: u8) -> ScreenResult {
+        try!(self.write_screen(data));
+        try!(self.strobe(data));
+        Ok(())
+    }
+
     pub fn write(&mut self, command: u8, mode: WriteMode) -> ScreenResult {
         match self.config.bit_mode {
             BitMode::B4 => {
-                try!(self.write_screen((mode as u8) | (command & 0xF0)));
-                try!(self.write_screen((mode as u8) | ((command << 4) & 0xF0)));
+                try!(self.write_four_bytes((mode as u8) | (command & 0xF0)));
+                try!(self.write_four_bytes((mode as u8) | ((command << 4) & 0xF0)));
                 Ok(())
             }
             BitMode::B8 => {
@@ -256,12 +262,20 @@ impl Screen {
         }
     }
 
-    pub fn write_screen(&mut self, command: u8) -> ScreenResult {
-        try!(self.write_cmd(command | (Backlight::On as u8)));
+    pub fn strobe(&mut self, data: u8) -> ScreenResult {
+        try!(self.write_screen(data | (WriteMode::Enable as u8)));
+        thread::sleep(Duration::new(0, 50_000));
+        try!(self.write_screen(data & !(WriteMode::Enable as u8)));
+        thread::sleep(Duration::new(0, 10_000));
         Ok(())
     }
 
+    pub fn write_screen(&mut self, command: u8) -> ScreenResult {
+        self.write_cmd(command | (Backlight::On as u8))
+    }
+
     pub fn write_cmd(&mut self, command: u8) -> ScreenResult {
+        println!("write byte {}", command);
         try!(self.dev.smbus_write_byte(command));
 
         // Wait 10 microseconds
@@ -278,8 +292,5 @@ mod tests {
     #[test]
     fn test_init() {
         let config = ScreenConfig::default();
-        let mut screen = Screen::new(config, "/dev/i2c-1", 0xf3).expect("Could not init device");
-
-        screen.init().unwrap();
     }
 }
