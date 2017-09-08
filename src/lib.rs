@@ -50,7 +50,7 @@ pub enum EntryShift {
 // Flags for display on/off control
 
 #[derive(Copy, Clone)]
-pub enum DisplayState {
+pub enum DisplayStatus {
     Off = 0x00,
     On = 0x04,
 }
@@ -136,11 +136,33 @@ impl ScreenConfig {
     }
 }
 
+pub struct DisplayState {
+    status: DisplayStatus,
+    cursor: CursorState,
+    blink: BlinkState,
+}
+
+impl DisplayState {
+    fn new(status: DisplayStatus, cursor: CursorState, blink: BlinkState) -> DisplayState {
+        DisplayState {
+            status,
+            cursor,
+            blink,
+        }
+    }
+
+    fn default() -> DisplayState {
+        DisplayState::new(DisplayStatus::On, CursorState::On, BlinkState::On)
+    }
+}
+
+
 // Screen
 
 pub struct Screen {
     dev: LinuxI2CDevice,
     config: ScreenConfig,
+    state: DisplayState,
 }
 
 type ScreenResult = Result<(), LinuxI2CError>;
@@ -148,7 +170,11 @@ type ScreenResult = Result<(), LinuxI2CError>;
 impl Screen {
     pub fn new(config: ScreenConfig, bus: &str, i2c_addr: u16) -> Result<Screen, LinuxI2CError> {
         let dev = try!(LinuxI2CDevice::new(bus, i2c_addr));
-        Ok(Screen { dev, config })
+        Ok(Screen {
+               dev,
+               config,
+               state: DisplayState::default(),
+           })
     }
 
     pub fn init(&mut self) -> ScreenResult {
@@ -159,7 +185,7 @@ impl Screen {
 
         try!(self.install_function_set());
 
-        try!(self.set_display(DisplayState::On, CursorState::Off, BlinkState::Off));
+        try!(self.apply_display_state());
         try!(self.clear());
         try!(self.set_entry_mode(EntryMode::Left)); // Allow users to change this?
 
@@ -189,16 +215,41 @@ impl Screen {
         self.command(Command::EntryModeSet, entry_mode as u8)
     }
 
-    pub fn set_display(&mut self,
-                       display: DisplayState,
-                       cursor: CursorState,
-                       blink: BlinkState)
-                       -> ScreenResult {
+    pub fn set_cursor(&mut self, activated: bool) -> ScreenResult {
+        self.state.cursor = match activated {
+            true => CursorState::On,
+            false => CursorState::Off,
+        };
+
+        self.apply_display_state()
+    }
+
+    pub fn set_status(&mut self, activated: bool) -> ScreenResult {
+        self.state.status = match activated {
+            true => DisplayStatus::On,
+            false => DisplayStatus::Off,
+        };
+
+        self.apply_display_state()
+    }
+
+    pub fn set_blink(&mut self, activated: bool) -> ScreenResult {
+        self.state.blink = match activated {
+            true => BlinkState::On,
+            false => BlinkState::Off,
+        };
+
+        self.apply_display_state()
+    }
+
+
+    // Stateless so every argument is needed
+    pub fn apply_display_state(&mut self) -> ScreenResult {
         let mut flags = 0;
 
-        flags = flags | (display as u8);
-        flags = flags | (cursor as u8);
-        flags = flags | (blink as u8);
+        flags = flags | (self.state.status as u8);
+        flags = flags | (self.state.cursor as u8);
+        flags = flags | (self.state.blink as u8);
 
         self.command(Command::DisplayControl, flags)
     }
