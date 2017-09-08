@@ -163,7 +163,7 @@ impl Screen {
         try!(self.clear());
         try!(self.set_entry_mode(EntryMode::Left)); // Allow users to change this?
 
-        // Wait a little for the screen to set up
+        // Wait for the screen to set up
         thread::sleep(Duration::from_millis(200));
 
         Ok(())
@@ -263,10 +263,14 @@ impl Screen {
     }
 
     pub fn strobe(&mut self, data: u8) -> ScreenResult {
+        // Set enable bit
         try!(self.write_screen(data | (WriteMode::Enable as u8)));
         thread::sleep(Duration::new(0, 50_000));
+
+        // Unset enable bit
         try!(self.write_screen(data & !(WriteMode::Enable as u8)));
         thread::sleep(Duration::new(0, 10_000));
+
         Ok(())
     }
 
@@ -275,10 +279,7 @@ impl Screen {
     }
 
     pub fn write_cmd(&mut self, command: u8) -> ScreenResult {
-        println!("write byte {}", command);
         try!(self.dev.smbus_write_byte(command));
-
-        // Wait 10 microseconds
         thread::sleep(Duration::new(0, 10_000));
 
         Ok(())
