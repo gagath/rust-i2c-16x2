@@ -4,6 +4,8 @@ use i2c_16x2::*;
 use std::thread;
 use std::time::Duration;
 
+// 16x2: 0x3f
+// 20x4: 0x27
 
 fn main() {
     let config = ScreenConfig::default();
