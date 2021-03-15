@@ -169,7 +169,7 @@ type ScreenResult = Result<(), LinuxI2CError>;
 
 impl Screen {
     pub fn new(config: ScreenConfig, bus: &str, i2c_addr: u16) -> Result<Screen, LinuxI2CError> {
-        let dev = try!(LinuxI2CDevice::new(bus, i2c_addr));
+        let dev = LinuxI2CDevice::new(bus, i2c_addr)?;
         Ok(Screen {
                dev,
                config,
@@ -178,16 +178,16 @@ impl Screen {
     }
 
     pub fn init(&mut self) -> ScreenResult {
-        try!(self.write(0x03, WriteMode::Normal));
-        try!(self.write(0x03, WriteMode::Normal));
-        try!(self.write(0x03, WriteMode::Normal));
-        try!(self.write(0x02, WriteMode::Normal));
+        self.write(0x03, WriteMode::Normal)?;
+        self.write(0x03, WriteMode::Normal)?;
+        self.write(0x03, WriteMode::Normal)?;
+        self.write(0x02, WriteMode::Normal)?;
 
-        try!(self.install_function_set());
+        self.install_function_set()?;
 
-        try!(self.apply_display_state());
-        try!(self.clear());
-        try!(self.set_entry_mode(EntryMode::Left)); // Allow users to change this?
+        self.apply_display_state()?;
+        self.clear()?;
+        self.set_entry_mode(EntryMode::Left)?; // Allow users to change this?
 
         // Wait for the screen to set up
         thread::sleep(Duration::from_millis(200));
@@ -273,10 +273,10 @@ impl Screen {
             _ => col,
         };
 
-        try!(self.write(0x80 + pos, WriteMode::Normal));
+        self.write(0x80 + pos, WriteMode::Normal)?;
 
         for c in s.chars() {
-            try!(self.write_char(c as u8));
+            self.write_char(c as u8)?;
         }
 
         Ok(())
@@ -294,20 +294,20 @@ impl Screen {
     }
 
     pub fn write_four_bytes(&mut self, data: u8) -> ScreenResult {
-        try!(self.write_screen(data));
-        try!(self.strobe(data));
+        self.write_screen(data)?;
+        self.strobe(data)?;
         Ok(())
     }
 
     pub fn write(&mut self, command: u8, mode: WriteMode) -> ScreenResult {
         match self.config.bit_mode {
             BitMode::B4 => {
-                try!(self.write_four_bytes((mode as u8) | (command & 0xF0)));
-                try!(self.write_four_bytes((mode as u8) | ((command << 4) & 0xF0)));
+                self.write_four_bytes((mode as u8) | (command & 0xF0))?;
+                self.write_four_bytes((mode as u8) | ((command << 4) & 0xF0))?;
                 Ok(())
             }
             BitMode::B8 => {
-                try!(self.write_screen((mode as u8) | command)); // Not sure here for mode
+                self.write_screen((mode as u8) | command)?; // Not sure here for mode
                 Ok(())
             }
         }
@@ -315,11 +315,11 @@ impl Screen {
 
     pub fn strobe(&mut self, data: u8) -> ScreenResult {
         // Set enable bit
-        try!(self.write_screen(data | (WriteMode::Enable as u8)));
+        self.write_screen(data | (WriteMode::Enable as u8))?;
         thread::sleep(Duration::new(0, 50_000));
 
         // Unset enable bit
-        try!(self.write_screen(data & !(WriteMode::Enable as u8)));
+        self.write_screen(data & !(WriteMode::Enable as u8))?;
         thread::sleep(Duration::new(0, 10_000));
 
         Ok(())
@@ -330,7 +330,7 @@ impl Screen {
     }
 
     pub fn write_cmd(&mut self, command: u8) -> ScreenResult {
-        try!(self.dev.smbus_write_byte(command));
+        self.dev.smbus_write_byte(command)?;
         thread::sleep(Duration::new(0, 10_000));
 
         Ok(())
@@ -343,6 +343,6 @@ mod tests {
 
     #[test]
     fn test_init() {
-        let config = ScreenConfig::default();
+        let _config = ScreenConfig::default();
     }
 }
