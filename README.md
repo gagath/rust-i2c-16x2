@@ -1,5 +1,12 @@
 # 16x2 I2C screen library for Rust
 
+![Maintenance status is "deprecated"](https://img.shields.io/badge/maintenance-deprecated-red.svg)
+
+**This crate is DEPRECATED.  
+Use [charlcd](https://crates.io/crates/charlcd) instead. It uses the Linux
+kernel driver for LCD screens instead of yet another userspace implementation
+in another language.**
+
 Still WIP, inspired from [a Python snippet from Denis Pleic](https://gist.github.com/DenisFromHR/cc863375a6e19dce359d).
 Datasheet used for reference [can be found here](https://www.sparkfun.com/datasheets/LCD/ADM1602K-NSW-FBS-3.3v.pdf).
 
